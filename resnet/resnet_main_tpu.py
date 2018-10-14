@@ -13,7 +13,6 @@ import numpy as np
 import tensorflow as tf
 import h5py
 from resnet_model import ResNet50Network
-from tpu_estimator_utils import model_to_tpu_estimator
 from tensorflow.contrib.tpu.python.tpu import tpu_config
 from tensorflow.contrib.tpu.python.tpu import tpu_estimator
 from tensorflow.contrib.tpu.python.tpu import tpu_optimizer
@@ -42,6 +41,14 @@ flags.DEFINE_string(
     'tpu_zone', default=None,
     help='GCE zone where the Cloud TPU is located in. If not specified, we '
     'will attempt to automatically detect the GCE project from metadata.')
+
+# Model specific flags
+flags.DEFINE_string(
+    'data_dir', default="../datasets/",
+    help=('The directory where the ImageNet input data is stored. Please see'
+          ' the README.md for the expected data format.'))
+
+
 
 flags.DEFINE_string(
     'model_dir', default=None,
@@ -116,12 +123,12 @@ flags.DEFINE_string(
 N_CLASSES=6
 SHUFFLE_BUFFER=1000
 
-def load_dataset():
-    train_dataset = h5py.File('../datasets/train_signs.h5', "r")
+def load_dataset(data_dir):
+    train_dataset = h5py.File(data_dir+'/datasets/train_signs.h5', "r")
     train_set_x_orig = np.array(train_dataset["train_set_x"][:],dtype=np.float32) # your train set features
     train_set_y_orig = np.array(train_dataset["train_set_y"][:],dtype=np.int32) # your train set labels
 
-    test_dataset = h5py.File('../datasets/test_signs.h5', "r")
+    test_dataset = h5py.File(data_dir+'/datasets/test_signs.h5', "r")
     test_set_x_orig = np.array(test_dataset["test_set_x"][:],dtype=np.float32) # your test set features
     test_set_y_orig = np.array(test_dataset["test_set_y"][:],dtype=np.int32) # your test set labels
 
@@ -265,7 +272,7 @@ def main(unused_argv) :
 
  
 
-  X_train_orig, Y_train_orig, X_test_orig, Y_test_orig, classes = load_dataset()
+  X_train_orig, Y_train_orig, X_test_orig, Y_test_orig, classes = load_dataset(FLAGS.data_dir)
   #feature_columns=[tf.feature_column.numeric_column("x",shape=X_train_orig.shape, normalizer_fn=lambda x: x/255.)]
   num_eval_images = X_test_orig.shape[0]
 
