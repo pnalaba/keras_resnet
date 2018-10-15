@@ -18,17 +18,17 @@
 
 import numpy as np
 import tensorflow as tf
-from tensorflow.keras import layers
-from tensorflow.keras.layers import Input, Add, Dense, Activation, ZeroPadding2D, BatchNormalization, Flatten, Conv2D, AveragePooling2D, MaxPooling2D, GlobalMaxPooling2D
-from tensorflow.keras.models import Model 
-from tensorflow.keras.initializers import glorot_uniform
-import scipy.misc
-from matplotlib.pyplot import imshow
+from tensorflow.python.keras import layers
+from tensorflow.python.keras.layers import Input, Add, Dense, Activation, ZeroPadding2D, BatchNormalization, Flatten, Conv2D, AveragePooling2D, MaxPooling2D, GlobalMaxPooling2D
+from tensorflow.python.keras.models import Model 
+from tensorflow.python.keras.initializers import glorot_uniform
+#import scipy.misc
+#from matplotlib.pyplot import imshow
 #get_ipython().run_line_magic('matplotlib', 'inline')
 
-import keras.backend as K
-K.set_image_data_format('channels_last')
-K.set_learning_phase(1)
+#import keras.backend as K
+#K.set_image_data_format('channels_last')
+#K.set_learning_phase(1)
 
 
 

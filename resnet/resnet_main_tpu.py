@@ -5,18 +5,22 @@ from __future__ import print_function
 
 import os
 import time
-
 from absl import flags
 import absl.logging as _logging
 
 import numpy as np
+import pandas as pd
 import tensorflow as tf
-import h5py
-from resnet_model import ResNet50Network
+print(tf.__version__)
+print(tf.__path__)
+
+from . import resnet_model
+#from resnet_model import ResNet50Network
 from tensorflow.contrib.tpu.python.tpu import tpu_config
 from tensorflow.contrib.tpu.python.tpu import tpu_estimator
 from tensorflow.contrib.tpu.python.tpu import tpu_optimizer
-from tensorflow.train import AdamOptimizer
+#from tensorflow.train import AdamOptimizer
+from tensorflow.python.training.adam import AdamOptimizer
 import pprint
 
 FLAGS = flags.FLAGS
@@ -122,8 +126,9 @@ flags.DEFINE_string(
 #Constants
 N_CLASSES=6
 SHUFFLE_BUFFER=1000
+IMAGE_SIZE_H, IMAGE_SIZE_W = 64, 64
 
-def load_dataset(data_dir):
+def load_dataset_h5(data_dir):
     train_dataset = h5py.File(data_dir+'/datasets/train_signs.h5', "r")
     train_set_x_orig = np.array(train_dataset["train_set_x"][:],dtype=np.float32) # your train set features
     train_set_y_orig = np.array(train_dataset["train_set_y"][:],dtype=np.int32) # your train set labels
@@ -146,7 +151,7 @@ def convert_to_one_hot(Y, C):
 #calculated values used as constants later
 
 
-def train_eval_input_fn(features, labels, batch_size=1, num_epochs=1) :
+def train_eval_input_fn(features, labels, batch_size=1, num_epochs=1) : # for h5 files
   #preprocess input features and labels
   features = features/255. 
   labels = convert_to_one_hot(labels,N_CLASSES).T
@@ -160,9 +165,39 @@ def train_eval_input_fn(features, labels, batch_size=1, num_epochs=1) :
   # Return the read end of the pipeline
   return dataset.make_one_shot_iterator().get_next()
 
+def dataset_parser(value) :
+  keys_to_features = { 
+    'x' : tf.FixedLenFeature([], tf.string, ''),
+    'y' : tf.FixedLenFeature([], tf.int64, -1)
+  }
+  parsed = tf.parse_single_example(value, keys_to_features)
+  image_bytes = tf.cast(tf.decode_raw(parsed['x'],tf.uint8),tf.float32)
+  image_bytes = image_bytes/255.
+  image = tf.reshape(image_bytes,shape=[IMAGE_SIZE_H,IMAGE_SIZE_W,3])
+  label = tf.cast(parsed['y'],dtype=tf.int32)
+  label =tf.one_hot(label,N_CLASSES)
+  return image , label
+
+
+def train_eval_tfrecord_input_fn(filename,params,num_epochs=1) :
+  filenames = [filename]
+  dataset = tf.data.TFRecordDataset(filenames)
+  batch_size = params.get('batch_size',1)
+
+  dataset = dataset.shuffle(SHUFFLE_BUFFER)
+
+  dataset = dataset.apply(
+      tf.contrib.data.map_and_batch(
+        dataset_parser, batch_size=batch_size,
+        num_parallel_batches=1,
+        drop_remainder=True))
+  return dataset.repeat(num_epochs)
+
+
+
 
 def resnet_model_fn(features, labels, mode, params) :
-  logits = ResNet50Network(features,N_CLASSES)
+  logits = resnet_model.ResNet50Network(features,N_CLASSES)
   print('logits',logits)
 
   ### EstimatorSpec for prediction mode
@@ -180,7 +215,6 @@ def resnet_model_fn(features, labels, mode, params) :
         })
 
 
-  batch_size = params["batch_size"]
   #one_hot_labels =tf.one_hot(labels,N_CLASSES)
   loss = tf.losses.softmax_cross_entropy(
       logits=logits, onehot_labels=labels)
@@ -228,8 +262,9 @@ def resnet_model_fn(features, labels, mode, params) :
         A dict of the metrics to return from evaluation.
       """
       predictions = tf.argmax(logits, axis=1)
-      top_1_accuracy = tf.metrics.accuracy(labels, predictions)
-      in_top_5 = tf.cast(tf.nn.in_top_k(logits, labels, 5), tf.float32)
+      labels_value = tf.cast(tf.argmax(labels,axis=1),tf.int32)
+      top_1_accuracy = tf.metrics.accuracy(labels_value, predictions)
+      in_top_5 = tf.cast(tf.nn.in_top_k(logits, labels_value, 5), tf.float32)
       top_5_accuracy = tf.metrics.mean(in_top_5)
 
       return {
@@ -263,25 +298,36 @@ def main(unused_argv) :
           num_shards=FLAGS.num_cores,
           per_host_input_for_training=tpu_config.InputPipelineConfig.PER_HOST_V2))  # pylint: disable=line-too-long
 
-  resnet_classifier = tpu_estimator.TPUEstimator(
+
+  if FLAGS.use_tpu  :
+    print("YES TPU")
+    resnet_classifier = tpu_estimator.TPUEstimator(
       use_tpu=FLAGS.use_tpu,
       model_fn=resnet_model_fn,
       config=config,
       train_batch_size=FLAGS.train_batch_size,
       eval_batch_size=FLAGS.eval_batch_size)
+  else :
+    print("NO TPU")
+    resnet_classifier = tpu_estimator.TPUEstimator(
+        use_tpu = FLAGS.use_tpu,
+        model_fn = resnet_model_fn,
+        config = tf.contrib.tpu.RunConfig(),
+      train_batch_size=FLAGS.train_batch_size,
+      eval_batch_size=FLAGS.eval_batch_size)
 
  
 
-  X_train_orig, Y_train_orig, X_test_orig, Y_test_orig, classes = load_dataset(FLAGS.data_dir)
+  #X_train_orig, Y_train_orig, X_test_orig, Y_test_orig, classes = load_dataset(FLAGS.data_dir)
   #feature_columns=[tf.feature_column.numeric_column("x",shape=X_train_orig.shape, normalizer_fn=lambda x: x/255.)]
-  num_eval_images = X_test_orig.shape[0]
+  num_eval_images = 120
 
   if FLAGS.mode == 'eval':
     eval_steps = num_eval_images // FLAGS.eval_batch_size
     start_timestamp = time.time()  # This time will include compilation time
     eval_results = resnet_classifier.evaluate(
-        input_fn=lambda params: train_eval_input_fn( X_test_orig,Y_test_orig,batch_size=params["batch_size"]),
-        steps=eval_steps,
+        input_fn=lambda params: train_eval_tfrecord_input_fn( FLAGS.data_dir+'/datasets/test_signs.tfrecord',params),
+        steps=None,
         #checkpoint_path=ckpt
         )
     elapsed_time = int(time.time() - start_timestamp)
@@ -289,9 +335,8 @@ def main(unused_argv) :
   else :
     if FLAGS.mode == 'train':
       resnet_classifier.train(
-          input_fn=lambda params : train_eval_input_fn( X_train_orig,
-            Y_train_orig,
-            batch_size=params["batch_size"],
+          input_fn=lambda params : train_eval_tfrecord_input_fn( FLAGS.data_dir+'/datasets/train_signs.tfrecord',
+            params,
             num_epochs=FLAGS.train_steps), 
           max_steps=FLAGS.train_steps)
 
