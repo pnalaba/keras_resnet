@@ -16,9 +16,8 @@
 # In[1]:
 
 
-import numpy as np
 import tensorflow as tf
-from tensorflow.python.keras import layers
+from tensorflow import layers
 from tensorflow.python.keras.layers import Input, Add, Dense, Activation, ZeroPadding2D, BatchNormalization, Flatten, Conv2D, AveragePooling2D, MaxPooling2D, GlobalMaxPooling2D
 from tensorflow.python.keras.models import Model 
 from tensorflow.python.keras.initializers import glorot_uniform
@@ -200,7 +199,7 @@ def ResNet50(input_shape = (64, 64, 3), classes = 6):
     """
     
     # Define the input as a tensor with shape input_shape
-    X_input = Input(input_shape,name="layer_x")
+    X_input = Input(shape=input_shape,name="layer_x")
     X = ResNet50Network(X_input,classes)
     
     # Create model
