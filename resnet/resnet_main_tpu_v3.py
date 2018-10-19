@@ -150,12 +150,10 @@ def train_eval_tfrecord_input_fn(filename,batch_size=1,num_epochs=1) :
   return dataset
 
 def model_fn(features, labels, mode, params):
-    print('params',params)
     # build model
     global_step = tf.train.get_global_step()
-    features=tf.Print(features,[features],'INPUT :',first_n=1)
-    hidden = tf.layers.dense(features, 10, activation=tf.nn.relu)
-    output = tf.layers.dense(hidden, 1)
+    output = resnet_model.ResNet50Network(features,N_CLASSES)
+
 
     predictions = output
     loss = None
@@ -163,10 +161,12 @@ def model_fn(features, labels, mode, params):
 
     if mode == tf.estimator.ModeKeys.TRAIN:
         # define loss
-        loss = tf.nn.l2_loss(predictions - labels)
+        one_hot_labels = tf.one_hot(labels,N_CLASSES)
+        loss = tf.losses.softmax_cross_entropy(
+            logits=output, onehot_labels = one_hot_labels)
 
         # define train_op
-        optimizer = tf.train.RMSPropOptimizer(learning_rate=0.05)
+        optimizer = tf.train.AdamOptimizer()
 
         # wrapper to make the optimizer work with TPUs
         if FLAGS.use_tpu:
