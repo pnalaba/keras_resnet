@@ -153,6 +153,7 @@ def model_fn(features, labels, mode, params):
     print('params',params)
     # build model
     global_step = tf.train.get_global_step()
+    features=tf.Print(features,[features],'INPUT :',first_n=1)
     hidden = tf.layers.dense(features, 10, activation=tf.nn.relu)
     output = tf.layers.dense(hidden, 1)
 
