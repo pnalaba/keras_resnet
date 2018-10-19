@@ -152,8 +152,8 @@ def main(unused_argv) :
   #feature_columns=[tf.feature_column.numeric_column("x",shape=X_train_orig.shape, normalizer_fn=lambda x: x/255.)]
 
   model = resnet_model.ResNet50(input_shape = (64, 64, 3), classes = 6)
-  if args.use_tpu :
-    tpu_cluster_resolver = tf.contrib.cluster_resolver.TPUClusterResolver(args.tpu)
+  if FLAGS.use_tpu :
+    tpu_cluster_resolver = tf.contrib.cluster_resolver.TPUClusterResolver(FLAGS.tpu)
     strategy = tf.contrib.tpu.TPUDistributionsStrategy(tpu_cluster_resolver)
     model = tf.contrib.tpu.keras_to_tpu_model(
         model, strategy=strategy)
@@ -163,9 +163,9 @@ def main(unused_argv) :
   val_dataset = train_eval_tfrecord_input_fn(FLAGS.data_dir+'/datasets/test_signs.tfrecord',batch_size=FLAGS.eval_batch_size,num_epochs=1)
   model.fit(train_dataset, epochs=1, steps_per_epoch=100, validation_data=val_dataset,
       validation_steps=3)
-  if not os.path.exists(args.model_dir) :
-    os.makedirs(args.model_dir)
-  model.save(os.path.join(args.model_dir, 'model.hd5'))
+  if not os.path.exists(FLAGS.model_dir) :
+    os.makedirs(FLAGS.model_dir)
+  model.save(os.path.join(FLAGS.model_dir, 'resnet_model.hd5'))
 
 if __name__ == "__main__":
   tf.logging.set_verbosity(tf.logging.INFO)
