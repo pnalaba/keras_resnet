@@ -213,12 +213,11 @@ def model_fn(features, labels, mode, params):
         )
 
 
-def train_input_fn(params={}):
+def train_input_fn(filename,params={}):
   # make some fake regression data
 
   # TPUEstimator passes params when calling input_fn
   batch_size = params.get('batch_size', 16)
-  filename = params.get('filename')
   num_epochs = params.get('num_epochs', 1)
   dataset = train_eval_tfrecord_input_fn(filename,batch_size=batch_size,num_epochs=num_epochs)
   return dataset
@@ -264,7 +263,7 @@ def main(unused_argv):
           params=params
       )
 
-  estimator.train(lambda : train_input_fn({'filename' : FLAGS.data_dir+'/datasets/train_signs.tfrecord', 'batch_size': FLAGS.train_batch_size}) , max_steps=FLAGS.train_steps)
+  estimator.train(lambda params : train_input_fn(filename=FLAGS.data_dir+'/datasets/train_signs.tfrecord', params) , max_steps=FLAGS.train_steps)
 
 if __name__ == "__main__" :
   tf.logging.set_verbosity(tf.logging.INFO)
