@@ -54,16 +54,16 @@ flags.DEFINE_string(
     help='One of {"train_and_eval", "train", "eval"}.')
 
 flags.DEFINE_integer(
-    'train_steps', default=112603,
+    'train_steps', default=33,
     help=('The number of steps to use for training. Default is 112603 steps'
           ' which is approximately 90 epochs at batch size 1024. This flag'
           ' should be adjusted according to the --train_batch_size flag.'))
 
 flags.DEFINE_integer(
-    'train_batch_size', default=1024, help='Batch size for training.')
+    'train_batch_size', default=32, help='Batch size for training.')
 
 flags.DEFINE_integer(
-    'eval_batch_size', default=1024, help='Batch size for evaluation.')
+    'eval_batch_size', default=32, help='Batch size for evaluation.')
 
 flags.DEFINE_integer(
     'steps_per_eval', default=5000,
@@ -87,7 +87,7 @@ flags.DEFINE_bool(
           ' keep up with the TPU-side computation.'))
 
 flags.DEFINE_integer(
-    'iterations_per_loop', default=100,
+    'iterations_per_loop', default=33,
     help=('Number of steps to run on TPU before outfeeding metrics to the CPU.'
           ' If the number of iterations in the loop would exceed the number of'
           ' train steps, the loop will exit before reaching'
@@ -95,7 +95,7 @@ flags.DEFINE_integer(
           ' utilization on the TPU.'))
 
 flags.DEFINE_integer(
-    'save_checkpoints_steps', default=100,
+    'save_checkpoints_steps', default=33,
     help=('Number of steps to run on TPU before saving model'
           ))
 
@@ -234,7 +234,7 @@ def main():
           model_dir=FLAGS.model_dir,
           tpu_config=tpu_config,
           save_checkpoints_steps=FLAGS.save_checkpoints_steps,
-          save_summary_steps=100
+          save_summary_steps=33
       )
 
       # TPUEstimator
@@ -243,7 +243,7 @@ def main():
           config=config,
           params=params,
           train_batch_size=FLAGS.train_batch_size,
-          eval_batch_size=32, # FIXME
+          eval_batch_size=FLAGS.eval_batch_size, # FIXME
           export_to_tpu=False
       )
   else:
@@ -255,7 +255,7 @@ def main():
           params=params
       )
 
-  estimator.train(lambda : train_input_fn({'filename' : FLAGS.data_dir+'/datasets/train_signs.tfrecord'}) , max_steps=FLAGS.max_steps)
+  estimator.train(lambda : train_input_fn({'filename' : FLAGS.data_dir+'/datasets/train_signs.tfrecord', 'batch_size': FLAGS.train_batch_size}) , max_steps=FLAGS.train_steps)
 
 if __name__ == "__main__" :
   main()
