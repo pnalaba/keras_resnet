@@ -134,7 +134,7 @@ def dataset_parser(value) :
   image_bytes = image_bytes/255.
   image = tf.reshape(image_bytes,shape=[IMAGE_SIZE_H*IMAGE_SIZE_W*3])
   #image = tf.reshape(image_bytes,shape=[IMAGE_SIZE_H,IMAGE_SIZE_W,3])
-  label = tf.cast(parsed['y'],dtype=tf.int32)
+  label = tf.cast(parsed['y'],dtype=tf.float32)
   #label =tf.one_hot(label,N_CLASSES)
   return image , label
 
@@ -150,6 +150,7 @@ def train_eval_tfrecord_input_fn(filename,batch_size=1,num_epochs=1) :
   return dataset
 
 def model_fn(features, labels, mode, params):
+    print('params',params)
     # build model
     global_step = tf.train.get_global_step()
     hidden = tf.layers.dense(features, 10, activation=tf.nn.relu)
@@ -167,12 +168,12 @@ def model_fn(features, labels, mode, params):
         optimizer = tf.train.RMSPropOptimizer(learning_rate=0.05)
 
         # wrapper to make the optimizer work with TPUs
-        if params['use_tpu']:
+        if FLAGS.use_tpu:
             optimizer = tf.contrib.tpu.CrossShardOptimizer(optimizer)
 
         train_op = optimizer.minimize(loss, global_step=global_step)
 
-    if params['use_tpu']:
+    if FLAGS.use_tpu:
         # TPU version of EstimatorSpec
         return tf.contrib.tpu.TPUEstimatorSpec(
             mode=mode,
