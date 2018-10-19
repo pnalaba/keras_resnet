@@ -13,7 +13,7 @@ OUTPUT_PATH=$JOB_DIR
 gcloud ml-engine jobs submit training $JOB_NAME \
     --staging-bucket $STAGING_BUCKET \
     --runtime-version 1.8 \
-    --scale-tier BASIC_TPU \
+    --scale-tier basic \
     --module-name resnet.resnet_main_tpu \
     --package-path resnet/ \
     --region $REGION \
@@ -21,4 +21,6 @@ gcloud ml-engine jobs submit training $JOB_NAME \
     --data_dir=$DATA_DIR \
     --model_dir=$OUTPUT_PATH \
     --train_steps=1024 \
-    --mode 'train'
+    --mode 'train'\
+    --use_tpu=false\
+    --tpu=""

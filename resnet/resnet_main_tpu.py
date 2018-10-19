@@ -8,8 +8,6 @@ import time
 from absl import flags
 import absl.logging as _logging
 
-import numpy as np
-import pandas as pd
 import tensorflow as tf
 print(tf.__version__)
 print(tf.__path__)
@@ -19,9 +17,6 @@ from . import resnet_model
 from tensorflow.contrib.tpu.python.tpu import tpu_config
 from tensorflow.contrib.tpu.python.tpu import tpu_estimator
 from tensorflow.contrib.tpu.python.tpu import tpu_optimizer
-#from tensorflow.train import AdamOptimizer
-from tensorflow.python.training.adam import AdamOptimizer
-import pprint
 
 FLAGS = flags.FLAGS
 flags.DEFINE_bool(
@@ -128,42 +123,16 @@ N_CLASSES=6
 SHUFFLE_BUFFER=1000
 IMAGE_SIZE_H, IMAGE_SIZE_W = 64, 64
 
-def load_dataset_h5(data_dir):
-    train_dataset = h5py.File(data_dir+'/datasets/train_signs.h5', "r")
-    train_set_x_orig = np.array(train_dataset["train_set_x"][:],dtype=np.float32) # your train set features
-    train_set_y_orig = np.array(train_dataset["train_set_y"][:],dtype=np.int32) # your train set labels
 
-    test_dataset = h5py.File(data_dir+'/datasets/test_signs.h5', "r")
-    test_set_x_orig = np.array(test_dataset["test_set_x"][:],dtype=np.float32) # your test set features
-    test_set_y_orig = np.array(test_dataset["test_set_y"][:],dtype=np.int32) # your test set labels
-
-    classes = np.array(test_dataset["list_classes"][:],dtype=np.int32) # the list of classes
-    
-    train_set_y_orig = train_set_y_orig.reshape((1, train_set_y_orig.shape[0]))
-    test_set_y_orig = test_set_y_orig.reshape((1, test_set_y_orig.shape[0]))
-    
-    return train_set_x_orig, train_set_y_orig, test_set_x_orig, test_set_y_orig, classes
-
+"""
 def convert_to_one_hot(Y, C):
     Y = np.eye(C,dtype=np.int32)[Y.reshape(-1)].T
     return Y
+"""
 
 #calculated values used as constants later
 
 
-def train_eval_input_fn(features, labels, batch_size=1, num_epochs=1) : # for h5 files
-  #preprocess input features and labels
-  features = features/255. 
-  labels = convert_to_one_hot(labels,N_CLASSES).T
-
-  # Convert the inputs to a Dataset.
-  dataset = tf.data.Dataset.from_tensor_slices((features,labels))
-
-  # Shuffle, repeat and batch the examples
-  dataset =dataset.shuffle(SHUFFLE_BUFFER).repeat(num_epochs).batch(batch_size)
-  print(dataset)
-  # Return the read end of the pipeline
-  return dataset.make_one_shot_iterator().get_next()
 
 def dataset_parser(value) :
   keys_to_features = { 
@@ -189,7 +158,7 @@ def train_eval_tfrecord_input_fn(filename,params,num_epochs=1) :
   dataset = dataset.apply(
       tf.contrib.data.map_and_batch(
         dataset_parser, batch_size=batch_size,
-        num_parallel_batches=1,
+        num_parallel_batches=8,
         drop_remainder=True))
   return dataset.repeat(num_epochs)
 

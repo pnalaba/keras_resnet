@@ -10,7 +10,6 @@ import absl.logging as _logging
 
 
 
-import numpy as np
 import tensorflow as tf
 from . import resnet_model 
 
@@ -119,9 +118,6 @@ SHUFFLE_BUFFER=1000
 IMAGE_SIZE_H, IMAGE_SIZE_W = 64, 64
 
 
-def convert_to_one_hot(Y, C):
-    Y = np.eye(C)[Y.reshape(-1)].T
-    return Y
 
 #calculated values used as constants later
 
