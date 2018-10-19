@@ -134,11 +134,6 @@ def dataset_parser(value) :
   image_bytes = image_bytes/255.
   image = tf.reshape(image_bytes,shape=[IMAGE_SIZE_H,IMAGE_SIZE_W,3])
   label = tf.cast(parsed['y'],dtype=tf.float32)
-  """ Statistically set the batch_size dimension. """
-  image.set_shape(image.get_shape().merge_with(
-        tf.TensorShape([batch_size,None,None,None ])))
-  label.set_shape(label.get_shape().merge_with(
-        tf.TensorShape([batch_size])))
   return image , label
 
 
@@ -148,14 +143,31 @@ def train_eval_tfrecord_input_fn(filename,batch_size=1,num_epochs=1) :
 
   dataset = dataset.shuffle(SHUFFLE_BUFFER)
 
-  dataset = dataset.map(dataset_parser).repeat(num_epochs).batch(batch_size, drop_remainder=True)
-  print(dataset)
+  dataset = dataset.apply(
+      tf.contrib.data.map_and_batch(
+        dataset_parser, batch_size=batch_size,
+        num_parallel_batches=8,
+        drop_remainder=True))
+
+  def set_shapes(images, labels) :
+
+    """ Statistically set the batch_size dimension. """
+    image.set_shape(image.get_shape().merge_with(
+          tf.TensorShape([batch_size,None,None,None ])))
+    label.set_shape(label.get_shape().merge_with(
+          tf.TensorShape([batch_size])))
+    return images, labels
+    
+  # Assign static batch size dimension
+  dataset = dataset.map(set_shapes)
+
+  #Prefetch overlaps in-feed with training
+  dataset = dataset.prefetch(tf.contrib.data.AUTOTUNE)
   return dataset
 
 def model_fn(features, labels, mode, params):
     # build model
     global_step = tf.train.get_global_step()
-    _input 
     output = resnet_model.ResNet50Network(features,N_CLASSES)
 
 
