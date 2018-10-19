@@ -132,10 +132,13 @@ def dataset_parser(value) :
   parsed = tf.parse_single_example(value, keys_to_features)
   image_bytes = tf.cast(tf.decode_raw(parsed['x'],tf.uint8),tf.float32)
   image_bytes = image_bytes/255.
-  image = tf.reshape(image_bytes,shape=[IMAGE_SIZE_H*IMAGE_SIZE_W*3])
-  #image = tf.reshape(image_bytes,shape=[IMAGE_SIZE_H,IMAGE_SIZE_W,3])
+  image = tf.reshape(image_bytes,shape=[IMAGE_SIZE_H,IMAGE_SIZE_W,3])
   label = tf.cast(parsed['y'],dtype=tf.float32)
-  #label =tf.one_hot(label,N_CLASSES)
+  """ Statistically set the batch_size dimension. """
+  image.set_shape(image.get_shape().merge_with(
+        tf.TensorShape([batch_size,None,None,None ])))
+  label.set_shape(label.get_shape().merge_with(
+        tf.TensorShape([batch_size])))
   return image , label
 
 
@@ -152,6 +155,7 @@ def train_eval_tfrecord_input_fn(filename,batch_size=1,num_epochs=1) :
 def model_fn(features, labels, mode, params):
     # build model
     global_step = tf.train.get_global_step()
+    _input 
     output = resnet_model.ResNet50Network(features,N_CLASSES)
 
 
