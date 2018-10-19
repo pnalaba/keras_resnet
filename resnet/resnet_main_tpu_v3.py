@@ -189,7 +189,12 @@ def model_fn(features, labels, mode, params):
         if FLAGS.use_tpu:
             optimizer = tf.contrib.tpu.CrossShardOptimizer(optimizer)
 
-        train_op = optimizer.minimize(loss, global_step=global_step)
+        # Batch normalization requires UPDATE_OPS to be added as a dependency to
+        # the train operation.
+        update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
+        with tf.control_dependencies(update_ops):
+          train_op = optimizer.minimize(loss, global_step=global_step)
+
 
     if FLAGS.use_tpu:
         # TPU version of EstimatorSpec
