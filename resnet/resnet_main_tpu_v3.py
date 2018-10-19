@@ -215,7 +215,7 @@ def train_input_fn(params={}):
   return dataset
 
 
-def main():
+def main(unused_argv):
   # pass FLAGS as params so the model_fn can use
   # the TPU specific args
   params = vars(FLAGS)
@@ -258,4 +258,5 @@ def main():
   estimator.train(lambda : train_input_fn({'filename' : FLAGS.data_dir+'/datasets/train_signs.tfrecord', 'batch_size': FLAGS.train_batch_size}) , max_steps=FLAGS.train_steps)
 
 if __name__ == "__main__" :
-  main()
+  tf.logging.set_verbosity(tf.logging.NIFO)
+  tf.app.run()
