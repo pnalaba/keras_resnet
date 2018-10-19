@@ -258,5 +258,5 @@ def main(unused_argv):
   estimator.train(lambda : train_input_fn({'filename' : FLAGS.data_dir+'/datasets/train_signs.tfrecord', 'batch_size': FLAGS.train_batch_size}) , max_steps=FLAGS.train_steps)
 
 if __name__ == "__main__" :
-  tf.logging.set_verbosity(tf.logging.NIFO)
+  tf.logging.set_verbosity(tf.logging.INFO)
   tf.app.run()
