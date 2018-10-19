@@ -152,9 +152,9 @@ def train_eval_tfrecord_input_fn(filename,batch_size=1,num_epochs=1) :
   def set_shapes(images, labels) :
 
     """ Statistically set the batch_size dimension. """
-    image.set_shape(image.get_shape().merge_with(
+    images.set_shape(images.get_shape().merge_with(
           tf.TensorShape([batch_size,None,None,None ])))
-    label.set_shape(label.get_shape().merge_with(
+    labels.set_shape(labels.get_shape().merge_with(
           tf.TensorShape([batch_size])))
     return images, labels
     
