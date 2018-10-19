@@ -149,12 +149,13 @@ def train_eval_tfrecord_input_fn(filename,batch_size=1,num_epochs=1) :
         num_parallel_batches=8,
         drop_remainder=True))
 
+  # TPUs need to know all dimensions when the graph is built
+  # Datasets know the batch size only when the graph is run
   def set_shapes(images, labels) :
-
     """ Statistically set the batch_size dimension. """
     images.set_shape(images.get_shape().merge_with(
           tf.TensorShape([batch_size,None,None,None ])))
-    labels.set_shape(labels.get_shape().merge_with(
+    label.set_shape(label.get_shape().merge_with(
           tf.TensorShape([batch_size])))
     return images, labels
     
@@ -215,21 +216,6 @@ def train_input_fn(params={}):
   filename = params.get('filename')
   num_epochs = params.get('num_epochs', 1)
   dataset = train_eval_tfrecord_input_fn(filename,batch_size=batch_size,num_epochs=num_epochs)
-
-  # TPUs need to know all dimensions when the graph is built
-  # Datasets know the batch size only when the graph is run
-  def set_shapes(features, labels):
-      features_shape = features.get_shape().merge_with([batch_size, None])
-      labels_shape = labels.get_shape().merge_with([batch_size])
-
-      features.set_shape(features_shape)
-      labels.set_shape(labels_shape)
-
-      return features, labels
-
-  dataset = dataset.map(set_shapes)
-  dataset = dataset.prefetch(tf.contrib.data.AUTOTUNE)
-
   return dataset
 
 
