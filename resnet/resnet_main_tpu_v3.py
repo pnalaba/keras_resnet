@@ -132,7 +132,7 @@ def dataset_parser(value) :
   parsed = tf.parse_single_example(value, keys_to_features)
   image_bytes = tf.cast(tf.decode_raw(parsed['x'],tf.uint8),tf.float32)
   image_bytes = image_bytes/255.
-  image = tf.reshape(image_bytes,shape=[])
+  image = tf.reshape(image_bytes,shape=[IMAGE_SIZE_H*IMAGE_SIZE_W*3])
   #image = tf.reshape(image_bytes,shape=[IMAGE_SIZE_H,IMAGE_SIZE_W,3])
   label = tf.cast(parsed['y'],dtype=tf.int32)
   #label =tf.one_hot(label,N_CLASSES)
